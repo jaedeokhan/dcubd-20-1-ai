@@ -1,0 +1,2067 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "Untitled12.ipynb",
+      "provenance": [],
+      "authorship_tag": "ABX9TyPheQOTvfagESJ54BLLmzUH",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/jaedeokhan/20_1_AI_Introduce/blob/master/pratice/0428_news_articles\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "_LpBtH0baxG5",
+        "colab_type": "text"
+      },
+      "source": [
+        "### 2020 0428 TUE 뉴스 기사 분류 : 다중 분류 문제"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "mQ9e8mZEasEA",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 3-12 로이터 데이터셋 로드하기\n",
+        "* 46 개의 상호 배타적인 토픽으로 분류하는 신경망을 만들어보는 예제\n",
+        "* 클래스가 많기에 다중 분류(multiclass classfication)\n",
+        "* 각 데이터 포인터가 정확히 하나의 범주로 표현되기 때문에 단일 레이블 다중 분류(single-label, multiclass classfication)\n",
+        "\n",
+        "\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "i4KgtYk1aul9",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1000
+        },
+        "outputId": "74d78042-767a-4f80-9931-1e1651f41aab"
+      },
+      "source": [
+        "pip install tensorflow_gpu==2.0"
+      ],
+      "execution_count": 1,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Collecting tensorflow_gpu==2.0\n",
+            "\u001b[?25l  Downloading https://files.pythonhosted.org/packages/25/44/47f0722aea081697143fbcf5d2aa60d1aee4aaacb5869aee2b568974777b/tensorflow_gpu-2.0.0-cp36-cp36m-manylinux2010_x86_64.whl (380.8MB)\n",
+            "\u001b[K     |████████████████████████████████| 380.8MB 44kB/s \n",
+            "\u001b[?25hRequirement already satisfied: wheel>=0.26 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (0.34.2)\n",
+            "Requirement already satisfied: google-pasta>=0.1.6 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (0.2.0)\n",
+            "Collecting gast==0.2.2\n",
+            "  Downloading https://files.pythonhosted.org/packages/4e/35/11749bf99b2d4e3cceb4d55ca22590b0d7c2c62b9de38ac4a4a7f4687421/gast-0.2.2.tar.gz\n",
+            "Requirement already satisfied: astor>=0.6.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (0.8.1)\n",
+            "Requirement already satisfied: numpy<2.0,>=1.16.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (1.18.3)\n",
+            "Requirement already satisfied: absl-py>=0.7.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (0.9.0)\n",
+            "Requirement already satisfied: wrapt>=1.11.1 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (1.12.1)\n",
+            "Requirement already satisfied: six>=1.10.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (1.12.0)\n",
+            "Requirement already satisfied: opt-einsum>=2.3.2 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (3.2.1)\n",
+            "Collecting tensorboard<2.1.0,>=2.0.0\n",
+            "\u001b[?25l  Downloading https://files.pythonhosted.org/packages/76/54/99b9d5d52d5cb732f099baaaf7740403e83fe6b0cedde940fabd2b13d75a/tensorboard-2.0.2-py3-none-any.whl (3.8MB)\n",
+            "\u001b[K     |████████████████████████████████| 3.8MB 43.4MB/s \n",
+            "\u001b[?25hRequirement already satisfied: grpcio>=1.8.6 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (1.28.1)\n",
+            "Requirement already satisfied: keras-applications>=1.0.8 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (1.0.8)\n",
+            "Collecting tensorflow-estimator<2.1.0,>=2.0.0\n",
+            "\u001b[?25l  Downloading https://files.pythonhosted.org/packages/fc/08/8b927337b7019c374719145d1dceba21a8bb909b93b1ad6f8fb7d22c1ca1/tensorflow_estimator-2.0.1-py2.py3-none-any.whl (449kB)\n",
+            "\u001b[K     |████████████████████████████████| 450kB 42.2MB/s \n",
+            "\u001b[?25hRequirement already satisfied: protobuf>=3.6.1 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (3.10.0)\n",
+            "Requirement already satisfied: keras-preprocessing>=1.0.5 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (1.1.0)\n",
+            "Requirement already satisfied: termcolor>=1.1.0 in /usr/local/lib/python3.6/dist-packages (from tensorflow_gpu==2.0) (1.1.0)\n",
+            "Requirement already satisfied: werkzeug>=0.11.15 in /usr/local/lib/python3.6/dist-packages (from tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (1.0.1)\n",
+            "Requirement already satisfied: requests<3,>=2.21.0 in /usr/local/lib/python3.6/dist-packages (from tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (2.21.0)\n",
+            "Requirement already satisfied: google-auth-oauthlib<0.5,>=0.4.1 in /usr/local/lib/python3.6/dist-packages (from tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (0.4.1)\n",
+            "Requirement already satisfied: markdown>=2.6.8 in /usr/local/lib/python3.6/dist-packages (from tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (3.2.1)\n",
+            "Requirement already satisfied: google-auth<2,>=1.6.3 in /usr/local/lib/python3.6/dist-packages (from tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (1.7.2)\n",
+            "Requirement already satisfied: setuptools>=41.0.0 in /usr/local/lib/python3.6/dist-packages (from tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (46.1.3)\n",
+            "Requirement already satisfied: h5py in /usr/local/lib/python3.6/dist-packages (from keras-applications>=1.0.8->tensorflow_gpu==2.0) (2.10.0)\n",
+            "Requirement already satisfied: idna<2.9,>=2.5 in /usr/local/lib/python3.6/dist-packages (from requests<3,>=2.21.0->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (2.8)\n",
+            "Requirement already satisfied: chardet<3.1.0,>=3.0.2 in /usr/local/lib/python3.6/dist-packages (from requests<3,>=2.21.0->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (3.0.4)\n",
+            "Requirement already satisfied: certifi>=2017.4.17 in /usr/local/lib/python3.6/dist-packages (from requests<3,>=2.21.0->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (2020.4.5.1)\n",
+            "Requirement already satisfied: urllib3<1.25,>=1.21.1 in /usr/local/lib/python3.6/dist-packages (from requests<3,>=2.21.0->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (1.24.3)\n",
+            "Requirement already satisfied: requests-oauthlib>=0.7.0 in /usr/local/lib/python3.6/dist-packages (from google-auth-oauthlib<0.5,>=0.4.1->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (1.3.0)\n",
+            "Requirement already satisfied: pyasn1-modules>=0.2.1 in /usr/local/lib/python3.6/dist-packages (from google-auth<2,>=1.6.3->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (0.2.8)\n",
+            "Requirement already satisfied: rsa<4.1,>=3.1.4 in /usr/local/lib/python3.6/dist-packages (from google-auth<2,>=1.6.3->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (4.0)\n",
+            "Requirement already satisfied: cachetools<3.2,>=2.0.0 in /usr/local/lib/python3.6/dist-packages (from google-auth<2,>=1.6.3->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (3.1.1)\n",
+            "Requirement already satisfied: oauthlib>=3.0.0 in /usr/local/lib/python3.6/dist-packages (from requests-oauthlib>=0.7.0->google-auth-oauthlib<0.5,>=0.4.1->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (3.1.0)\n",
+            "Requirement already satisfied: pyasn1<0.5.0,>=0.4.6 in /usr/local/lib/python3.6/dist-packages (from pyasn1-modules>=0.2.1->google-auth<2,>=1.6.3->tensorboard<2.1.0,>=2.0.0->tensorflow_gpu==2.0) (0.4.8)\n",
+            "Building wheels for collected packages: gast\n",
+            "  Building wheel for gast (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Created wheel for gast: filename=gast-0.2.2-cp36-none-any.whl size=7540 sha256=2fb2bd2488c8e859c509538aedb8b5853e6aa292d5ac9c25dabee06fda393b0c\n",
+            "  Stored in directory: /root/.cache/pip/wheels/5c/2e/7e/a1d4d4fcebe6c381f378ce7743a3ced3699feb89bcfbdadadd\n",
+            "Successfully built gast\n",
+            "\u001b[31mERROR: tensorflow 2.2.0rc3 has requirement gast==0.3.3, but you'll have gast 0.2.2 which is incompatible.\u001b[0m\n",
+            "\u001b[31mERROR: tensorflow 2.2.0rc3 has requirement tensorboard<2.3.0,>=2.2.0, but you'll have tensorboard 2.0.2 which is incompatible.\u001b[0m\n",
+            "\u001b[31mERROR: tensorflow 2.2.0rc3 has requirement tensorflow-estimator<2.3.0,>=2.2.0rc0, but you'll have tensorflow-estimator 2.0.1 which is incompatible.\u001b[0m\n",
+            "\u001b[31mERROR: tensorflow-probability 0.10.0rc0 has requirement gast>=0.3.2, but you'll have gast 0.2.2 which is incompatible.\u001b[0m\n",
+            "Installing collected packages: gast, tensorboard, tensorflow-estimator, tensorflow-gpu\n",
+            "  Found existing installation: gast 0.3.3\n",
+            "    Uninstalling gast-0.3.3:\n",
+            "      Successfully uninstalled gast-0.3.3\n",
+            "  Found existing installation: tensorboard 2.2.1\n",
+            "    Uninstalling tensorboard-2.2.1:\n",
+            "      Successfully uninstalled tensorboard-2.2.1\n",
+            "  Found existing installation: tensorflow-estimator 2.2.0\n",
+            "    Uninstalling tensorflow-estimator-2.2.0:\n",
+            "      Successfully uninstalled tensorflow-estimator-2.2.0\n",
+            "Successfully installed gast-0.2.2 tensorboard-2.0.2 tensorflow-estimator-2.0.1 tensorflow-gpu-2.0.0\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "VjDb0LZMautT",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 70
+        },
+        "outputId": "4251ba48-4e90-4fad-fd31-4453f861e45e"
+      },
+      "source": [
+        "from keras.datasets import reuters\n",
+        "\n",
+        "(train_data, train_labels), (test_data, test_labels) = reuters.load_data(num_words=10000)"
+      ],
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Using TensorFlow backend.\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "Downloading data from https://s3.amazonaws.com/text-datasets/reuters.npz\n",
+            "2113536/2110848 [==============================] - 1s 0us/step\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "8SrhkW2dau0G",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 90
+        },
+        "outputId": "f038a363-42be-4946-a556-6257793d42ea"
+      },
+      "source": [
+        "print (len(train_data))\n",
+        "print (len(test_data))\n",
+        "print (train_data[0])"
+      ],
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "8982\n",
+            "2246\n",
+            "[1, 2, 2, 8, 43, 10, 447, 5, 25, 207, 270, 5, 3095, 111, 16, 369, 186, 90, 67, 7, 89, 5, 19, 102, 6, 19, 124, 15, 90, 67, 84, 22, 482, 26, 7, 48, 4, 49, 8, 864, 39, 209, 154, 6, 151, 6, 83, 11, 15, 22, 155, 11, 15, 7, 48, 9, 4579, 1005, 504, 6, 258, 6, 272, 11, 15, 22, 134, 44, 11, 15, 16, 8, 197, 1245, 90, 67, 52, 29, 209, 30, 32, 132, 6, 109, 15, 17, 12]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "UowMzbcyau6n",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 3-13 로이터 데이터셋을 텍스트로 디코딩하기"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "w54gOEOTavAw",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 52
+        },
+        "outputId": "b92f953a-878b-4443-dc25-ef8595912234"
+      },
+      "source": [
+        "word_index = reuters.get_word_index()\n",
+        "reverse_word_index = dict([(value, key) for (key, value) in word_index.items()])\n",
+        "decoded_neswire = ' '.join([reverse_word_index.get(i - 3, '?') for i in train_data[0]])\n",
+        "# 0,1,2 '패딩', '문서 시작', '사전에 없음'을 위한 인덱스이므로 3을 뺀다."
+      ],
+      "execution_count": 7,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Downloading data from https://s3.amazonaws.com/text-datasets/reuters_word_index.json\n",
+            "557056/550378 [==============================] - 0s 1us/step\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "BQzI78aTavG5",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 35
+        },
+        "outputId": "b98b087c-5c78-4f37-c1fc-56c601f2b6cb"
+      },
+      "source": [
+        "print (train_labels[10])"
+      ],
+      "execution_count": 8,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "3\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "HvYFCWnYavMh",
+        "colab_type": "text"
+      },
+      "source": [
+        "### 3.5.2 데이터 준비\n",
+        "#### 3-14 데이터 인코딩하기\n",
+        "* 원-핫 인코딩이 범주형 데이터에 널리 사용되기 때문에 범주형 인코딩(categorical encoding)이라고 부른다."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "0Lj7Y5sJavSf",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "import numpy as np\n",
+        "\n",
+        "def vectorize_sequences(sequences, dimension=10000):\n",
+        "    results = np.zeros((len(sequences), dimension))\n",
+        "    for i, sequence in enumerate(sequences):\n",
+        "        # i번째부터, 해당되는 위치\n",
+        "        results[i, sequence] = 1.\n",
+        "    return results\n",
+        "\n",
+        "x_train = vectorize_sequences(train_data) # 훈련 데이터 벡터 변환\n",
+        "x_test =  vectorize_sequences(test_data)  # 테스트 데이터 벡터 변환\n",
+        "\n",
+        "'''\n",
+        "'''\n",
+        "\n",
+        "'''\n",
+        "# MNIST 예제에서 이미 보았듯이 케라스에서는 이를 위한 내장 함수가 존재한다.\n",
+        "from keras.utils.np_utils import to_categorical\n",
+        "\n",
+        "one_hot_train_labels = to_categorical(train_labels)\n",
+        "one_hot_test_labels = to_categorical(test_labels)\n",
+        "'''"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "bPv2bgiWggJ4",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "def to_one_hot(labels, dimension=46):\n",
+        "    results = np.zeros((len(labels), dimension))\n",
+        "    for i, label in enumerate(labels):\n",
+        "        results[i, label] = 1.\n",
+        "    return results\n",
+        "\n",
+        "one_hot_train_labels = to_one_hot(train_labels)\n",
+        "one_hot_test_labels = to_one_hot(test_labels)"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "TY4qNT5LghJU",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 266
+        },
+        "outputId": "a6fa9693-8ce7-43ae-c673-96aa5b86ddfa"
+      },
+      "source": [
+        "print (one_hot_train_labels)\n",
+        "print (one_hot_test_labels)"
+      ],
+      "execution_count": 17,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[[0. 0. 0. ... 0. 0. 0.]\n",
+            " [0. 0. 0. ... 0. 0. 0.]\n",
+            " [0. 0. 0. ... 0. 0. 0.]\n",
+            " ...\n",
+            " [0. 0. 0. ... 0. 0. 0.]\n",
+            " [0. 0. 0. ... 0. 0. 0.]\n",
+            " [0. 0. 0. ... 0. 0. 0.]]\n",
+            "[[0. 0. 0. ... 0. 0. 0.]\n",
+            " [0. 0. 0. ... 0. 0. 0.]\n",
+            " [0. 1. 0. ... 0. 0. 0.]\n",
+            " ...\n",
+            " [0. 0. 0. ... 0. 0. 0.]\n",
+            " [0. 0. 0. ... 0. 0. 0.]\n",
+            " [0. 0. 0. ... 0. 0. 0.]]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "fMS5UuHYavY8",
+        "colab_type": "text"
+      },
+      "source": [
+        "### 3.5.3 모델 구성\n",
+        "\n",
+        "#### 3-15 모델 정의하기\n",
+        "* 출력 클래스의 개수가 2에서 46개로 늘어났다.\n",
+        "* 16차원 공간을 사용하면 46개의 클래스를 구분하기에는 제약이 너무 많다. 규모가 작은 층은 유용한 정보를 완전히 잃게 되는 정보의 병목 이 될 수 있다.\n",
+        "* 64개의 유닛을 사용"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "sC_pdWX0fZxM",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(64, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(64, activation='relu'))\n",
+        "model.add(layers.Dense(46, activation='softmax'))"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "bxMZ_LdDeD06",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 3-16 모델 컴파일하기"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "PZvQrHJFeD8p",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "model.compile(optimizer='rmsprop',\n",
+        "              loss='categorical_crossentropy',\n",
+        "              metrics=['accuracy'])"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "f2zGMDsoeEDu",
+        "colab_type": "text"
+      },
+      "source": [
+        "### 3.5.4 훈련 검증\n",
+        "* 훈련 데이터에서 1000개의 샘플을 따로 떼어서 검증 세트로 사용\n",
+        "\n",
+        "#### 3-17 검증 세트 준비하기"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "NJS7_7rBeESL",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "x_val = x_train[:1000]\n",
+        "partial_x_train = x_train[1000:]\n",
+        "\n",
+        "y_val = one_hot_train_labels[:1000]\n",
+        "partial_y_train = one_hot_train_labels[1000:]"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "Z1-1_1lleEZM",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 3-18 모델 훈련하기\n",
+        "* 20 epochs"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "5G9CL0WqeEf2",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 766
+        },
+        "outputId": "4614ceff-57cc-408d-943b-c3013f119f8b"
+      },
+      "source": [
+        "history = model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=20,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")"
+      ],
+      "execution_count": 24,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/20\n",
+            "7982/7982 [==============================] - 2s 233us/step - loss: 2.6374 - accuracy: 0.5045 - val_loss: 1.7356 - val_accuracy: 0.6610\n",
+            "Epoch 2/20\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 1.4097 - accuracy: 0.7125 - val_loss: 1.2869 - val_accuracy: 0.7180\n",
+            "Epoch 3/20\n",
+            "7982/7982 [==============================] - 1s 67us/step - loss: 1.0353 - accuracy: 0.7871 - val_loss: 1.1238 - val_accuracy: 0.7600\n",
+            "Epoch 4/20\n",
+            "7982/7982 [==============================] - 1s 67us/step - loss: 0.8185 - accuracy: 0.8334 - val_loss: 1.0427 - val_accuracy: 0.7850\n",
+            "Epoch 5/20\n",
+            "7982/7982 [==============================] - 1s 67us/step - loss: 0.6605 - accuracy: 0.8685 - val_loss: 0.9787 - val_accuracy: 0.7950\n",
+            "Epoch 6/20\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.5308 - accuracy: 0.8908 - val_loss: 0.9331 - val_accuracy: 0.8120\n",
+            "Epoch 7/20\n",
+            "7982/7982 [==============================] - 1s 67us/step - loss: 0.4305 - accuracy: 0.9119 - val_loss: 0.9699 - val_accuracy: 0.7900\n",
+            "Epoch 8/20\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.3536 - accuracy: 0.9253 - val_loss: 0.9029 - val_accuracy: 0.8190\n",
+            "Epoch 9/20\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.2921 - accuracy: 0.9381 - val_loss: 0.9203 - val_accuracy: 0.8190\n",
+            "Epoch 10/20\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.2477 - accuracy: 0.9431 - val_loss: 0.9331 - val_accuracy: 0.8170\n",
+            "Epoch 11/20\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.2141 - accuracy: 0.9484 - val_loss: 0.9471 - val_accuracy: 0.8210\n",
+            "Epoch 12/20\n",
+            "7982/7982 [==============================] - 1s 67us/step - loss: 0.1880 - accuracy: 0.9516 - val_loss: 1.0247 - val_accuracy: 0.8020\n",
+            "Epoch 13/20\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.1716 - accuracy: 0.9534 - val_loss: 0.9671 - val_accuracy: 0.8140\n",
+            "Epoch 14/20\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.1550 - accuracy: 0.9534 - val_loss: 1.0173 - val_accuracy: 0.8040\n",
+            "Epoch 15/20\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.1467 - accuracy: 0.9539 - val_loss: 1.0363 - val_accuracy: 0.8130\n",
+            "Epoch 16/20\n",
+            "7982/7982 [==============================] - 1s 67us/step - loss: 0.1323 - accuracy: 0.9565 - val_loss: 1.0322 - val_accuracy: 0.8080\n",
+            "Epoch 17/20\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.1291 - accuracy: 0.9585 - val_loss: 1.0334 - val_accuracy: 0.8230\n",
+            "Epoch 18/20\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.1212 - accuracy: 0.9589 - val_loss: 1.1060 - val_accuracy: 0.8010\n",
+            "Epoch 19/20\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 0.1208 - accuracy: 0.9562 - val_loss: 1.0648 - val_accuracy: 0.8180\n",
+            "Epoch 20/20\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.1147 - accuracy: 0.9574 - val_loss: 1.1001 - val_accuracy: 0.8120\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "VGcUYnwjeEmk",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 3-19 훈련과 검증 손실 그리기"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "1iMkPFoBeEtO",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 295
+        },
+        "outputId": "416933c4-8b6c-4ff9-9a8f-57410b985fa4"
+      },
+      "source": [
+        "import matplotlib.pyplot as plt\n",
+        "\n",
+        "loss = history.history['loss']\n",
+        "val_loss = history.history['val_loss']\n",
+        "\n",
+        "epochs = range(1, len(loss) + 1)\n",
+        "\n",
+        "plt.plot(epochs, loss, 'bo', label=\"Training loss\")\n",
+        "plt.plot(epochs, val_loss, 'b', label=\"Validation loss\")\n",
+        "plt.title(\"Training and Validation loss\")\n",
+        "plt.xlabel('Epochs')\n",
+        "plt.ylabel('Loss')\n",
+        "plt.legend()\n",
+        "\n",
+        "plt.show()"
+      ],
+      "execution_count": 25,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "image/png": "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0UdFJH2uvhpmzkzvNnv0gNtvT728VatWHHLIIbzwwguccsopTJw4kbPOOgszY/To0bRq1YotW7bwox/9iFmzZtGtW7ek25k+fToTJ05k5syZbN68mZ49e9KrVy8ATj/9dIYNGwbATTfdxP3338+VV17JwIEDOfnkkxk0aNB221q/fj1Dhw7ltddeo3Pnzpx33nncc889XH311QC0adOGGTNmcPfddzNmzBjuu+++lJ8v08NVq0YgIrVCSfMQhGahkvsBPProo/Ts2ZOCggLmzJmzXXt+WW+++SannXYaeXl57LrrrgwcOHDbstmzZ3PkkUdy8MEHU1RUxJw5c8qN5+OPP6ZTp0507twZgPPPP5+pU6duW3766acD0KtXr20D1aXy1ltvce655wLJh6seO3YsK1asoEGDBvTu3Zvx48czatQoPvjgA5o3b17utitDNQIRqZLyfrnH6ZRTTuGaa65hxowZrF27ll69ejF//nzGjBnDu+++S8uWLRk6dGjK4acrMnToUCZPnkz37t154IEHmDJlSrXiLRnKujrDWI8YMYKTTjqJ559/nr59+/LSSy9tG676ueeeY+jQoVx77bWcd9551YpVNQIRqRWaNWvGMcccw4UXXritNrBq1SqaNm1KixYtWLJkCS+88EK52zjqqKOYPHky69atY/Xq1TzzzDPblq1evZq99tqLTZs2bRs6GqB58+asXr16h2116dKFBQsWMG/ePAAefvhhjj766J36bJkerlo1AhGpNQYPHsxpp522rYmoZNjmAw44gH322Ye+ffuWu37Pnj05++yz6d69O7vvvju9e/fetuzXv/41ffr0oW3btvTp02fbwf+cc85h2LBhjB07dlsnMUCTJk0YP348Z555Jps3b6Z3794MHz58h/esjJJ7KXfr1o28vLzthqt+4403qFevHl27duXEE09k4sSJ/P73v6dhw4Y0a9YsLTewiW0Y6rhoGGqRmqdhqGuXqg5DraYhEZEcp0QgIpLjlAhEpFJqWzNyrtqZv5MSgYhUqEmTJixfvlzJIMu5O8uXL6dJkyZVWk9nDYlIhdq3b8+iRYvQjaGyX5MmTWjfvn2V1lEiEJEKNWzYkE6dOmU6DImJmoZERHKcEoGISI5TIhARyXFKBCIiOU6JQEQkxykRiIjkOCUCEZEcp0QgIpLjlAhERHKcEoGISI5T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\n",
+            "text/plain": [
+              "<Figure size 432x288 with 1 Axes>"
+            ]
+          },
+          "metadata": {
+            "tags": [],
+            "needs_background": "light"
+          }
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "QtdXlpskeE0K",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 3-20 훈련과 검증 정확도 그리기"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Gd1gEcKHeE6c",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 295
+        },
+        "outputId": "7b4bc999-2f6b-415a-9aa5-b24a1afa5f3e"
+      },
+      "source": [
+        "plt.clf() # 그래프를 초기화한다.\n",
+        "\n",
+        "acc = history.history['accuracy']\n",
+        "val_acc = history.history['val_accuracy']\n",
+        "\n",
+        "epochs = range(1, len(loss) + 1)\n",
+        "\n",
+        "plt.plot(epochs, acc, 'bo', label=\"Training acc\")\n",
+        "plt.plot(epochs, val_acc, 'b', label=\"Validation acc\")\n",
+        "plt.title(\"Training and validaiton accuracy\")\n",
+        "plt.xlabel(\"Epochs\")\n",
+        "plt.ylabel(\"Accuracy\")\n",
+        "plt.legend()\n",
+        "\n",
+        "plt.show()"
+      ],
+      "execution_count": 30,
+      "outputs": [
+        {
+          "output_type": "display_data",
+          "data": {
+            "image/png": "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/e+w9//mm+FznXxyqOAPO6z072Tp0tA6e+CB8N3ddltoKVRXd9H69eH7vfNO+OKL0B140UXh88+cufkRe8xi++03J4XYJNG6dfXEVVYiwN1r1KNr164uqVVU5P7aa+7Dhrl//31q3nPRIvfDD3cH9wsvdF+3LjXvm0rTp7v37Rs+4047ud96q/vKldWz7qIi9/x892uucd9rr/AexY9Gjdx793YfPtz9yy9D2WT48Uf3F15wHzrUvUsX9zp13Js2de/e3f2MM9z/9Cf3kSPd333Xff78isVRUOD+xz+677JL+Ext2oTtt3BhxWKcMsX9l78M6+je3X3SpIotX9Ly5e533uneokVYZ8eO7qNGua9fv3XZoiL3BQvcJ04M38X554fffPFnKn40aBC2329+4/7WW5WPDcj3UurVtFfsFX0oEaTOhg3u//yne+fOm3+U223nfvvtya2YP/7YvWVL99xc96eeSt77ZIrJk91PPDFs32bN3P/2N/fVqyu+no0b3T/80P2yy9zbtg3ry8lxP+YY94cecv/qK/fnn3c/7zz3du02f6dt2rj//vfuzz7rvmRJ5T/HggXuY8a4X3CB+y9+sXn99eu7H3aY+5VXhvc58sjwnnXqbFnhbbut+777up90kvsll7jfd5/7Sy+5z5rlvnate2Gh+4svup9wgrtZWP6kk0KZwsLKx11UFH5nu+wS1nveeSGJVcQPP7hfdZX79tuHz3Lkke6vvFL5JPvjj+7vvec+YkTYFsce696qlfvTT1dufe5KBFJBq1aFf8LiyqR9e/dHH3X/4gv3Xr02z3vttep936Ii94cfdq9XL7z35MnVu/5M99FH7kcfHbZvixbuDzxQfsItLHR/5x33iy5y3223sOw224TK8vHHy67Q5swJ79Gnz+YKzMz9wAPD3vbbb5f9/t995/7MM6Fyb99+y52FY45xv/nmsLe/dm385detCy2SCRPCHvHQoaGl8otfhL3g2CRhtjnGXXd1v+4697lzy9+mFbFsWah0c3LcGzcOv8XyEsysWe7nnht+s3XquJ92WtVbFWWpSustbYkA6AnMBuYAV8d5vTXwFvBfYBrwq/LWqUSQPIsXu99wg3uTJuGXcdBB7uPGhT3NWC+95L7HHqHMKadUzz/kmjXu55wT1nnccVXbM63p3nrL/eCDw7Zo2zZU6Bs2bH59/Xr3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2rVr0x2KlCI3N5eWLVuyzTbbJLyMEoGIJGzevHk0atSItm3bYmbpDkdKcHeWLFnCvHnzaNeuXcLLqWtIRBK2du1amjRpoiSQocyMJk2aVLjFpkQgIhWiJJDZKvP9KBGIiGQ5JQIRSZpRo6BtW6hTJ/wdNapq61uyZAmdOnWiU6dO7Lrrruy2226bptevX1/msvn5+Vx88cXlvkePHj2qFmQNpIPFIpIUo0bBoEGwenWYnjs3TAMMGFC5dTZp0oQpU6YAMGzYMBo2bMjll1++6fXCwkLq1o1freXl5ZGXF3cU5i18+OGHlQuuBlOLQCmpxkgAAA+MSURBVESS4tprNyeBYqtXh/nVaeDAgQwePJju3btz5ZVX8umnn3LQQQfRuXNnevTowezZswF4++23OfHEE4GQRM455xwOP/xwdt99d+69995N62vYsOGm8ocffjh9+/alQ4cODBgwgOL7t7z88st06NCBrl27cvHFF29ab6yCggIOOeQQunTpQpcuXbZIMLfffjv7778/HTt25OqrrwZgzpw5HH300XTs2JEuXbrw9ddfV++GKoNaBCKSFN99V7H5VTFv3jw+/PBDcnJyWLFiBe+99x5169bljTfe4I9//CPPP//8VsvMmjWLt956i5UrV9K+fXuGDBmy1bn3//3vf5kxYwYtWrTg4IMP5oMPPiAvL4/zzjuPd999l3bt2tG/f/+4Me288868/vrr5Obm8tVXX9G/f3/y8/OZMGEC//73v/nkk09o0KABP/30EwADBgzg6quvpk+fPqxdu5aioqLq31ClUCIQkaRo3Tp0B8WbX91OPfVUcnJyAFi+fDlnnXUWX331FWbGhg0b4i5zwgknUL9+ferXr8/OO+/MokWLaNmy5RZlunXrtmlep06dKCgooGHDhuy+++6bztPv378/I0aM2Gr9GzZs4MILL2TKlCnk5OTw5ZdfAvDGG29w9tln06BBAwAaN27MypUrmT9/Pn369AHCRWGppK4hEUmKW26BqK7bpEGDML+6bbfddpue/+lPf+KII45g+vTpvPjii6WeU1+/fv1Nz3NycigsLKxUmdLcfffd7LLLLkydOpX8/PxyD2ankxKBiCTFgAEwYgS0aQNm4e+IEZU/UJyo5cuXs9tuuwHwxBNPVPv627dvzzfffENBQQEAY8aMKTWO5s2bU6dOHZ5++mk2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\n",
+            "text/plain": [
+              "<Figure size 432x288 with 1 Axes>"
+            ]
+          },
+          "metadata": {
+            "tags": [],
+            "needs_background": "light"
+          }
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "2zq3uRacjbjZ",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 3-21 모델을 처음부터 다시 훈련하기\n",
+        "* 이 모델은 9 번째 epochs 이후부터 과대적합이 시작된다. 그래서 9번의 epochs 로 새로운 모델을 훈련하고 테스트 세트에서 평가한다."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "v4L1g_lij0zk",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 392
+        },
+        "outputId": "59dbed1e-87c8-4d85-bc09-b6c8b1b5868d"
+      },
+      "source": [
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(64, activation='relu', input_shape=(10000,)))\n",
+        "model.add(layers.Dense(64, activation='relu'))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "results = model.evaluate(x_test, one_hot_test_labels)"
+      ],
+      "execution_count": 36,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 79us/step - loss: 2.5917 - accuracy: 0.4999 - val_loss: 1.7421 - val_accuracy: 0.6200\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 1.4203 - accuracy: 0.6971 - val_loss: 1.3128 - val_accuracy: 0.7160\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 1.0507 - accuracy: 0.7692 - val_loss: 1.1461 - val_accuracy: 0.7500\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.8321 - accuracy: 0.8193 - val_loss: 1.0479 - val_accuracy: 0.7810\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.6692 - accuracy: 0.8527 - val_loss: 0.9704 - val_accuracy: 0.8020\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.5408 - accuracy: 0.8832 - val_loss: 0.9439 - val_accuracy: 0.8020\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.4319 - accuracy: 0.9069 - val_loss: 0.9142 - val_accuracy: 0.8120\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.3517 - accuracy: 0.9262 - val_loss: 0.9031 - val_accuracy: 0.8140\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.2874 - accuracy: 0.9379 - val_loss: 0.9311 - val_accuracy: 0.8090\n",
+            "2246/2246 [==============================] - 0s 116us/step\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9kicV3kLj04Y",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 35
+        },
+        "outputId": "5de3b59c-9f35-4ca9-80fe-3cfef2d9f662"
+      },
+      "source": [
+        "print (results)"
+      ],
+      "execution_count": 37,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[1.0344674621218566, 0.7724844217300415]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "qhPaT5cnj0-M",
+        "colab_type": "text"
+      },
+      "source": [
+        "* 무작위로 불균형한 데이터셋 사용"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "4MSLY81Jj1DZ",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 35
+        },
+        "outputId": "74f7660f-6e81-477d-fb2f-15bfae6d1d05"
+      },
+      "source": [
+        "import copy\n",
+        "test_labels_copy = copy.copy(test_labels)\n",
+        "np.random.shuffle(test_labels_copy)\n",
+        "hist_array = np.array(test_labels) == np.array(test_labels_copy)\n",
+        "float(np.sum(hist_array)) / len(test_labels)"
+      ],
+      "execution_count": 39,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "0.19100623330365094"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 39
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "SxVaheqpj1jy",
+        "colab_type": "text"
+      },
+      "source": [
+        "### 3.5.5 새로운 데이터에 대해 예측하기\n",
+        "#### 3-22 새로운 데이터에 대해 예측"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "V70OjiSKj1p1",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "predictions = model.predict(x_test)"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "WEy__5AFluNF",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 301
+        },
+        "outputId": "144f7131-3efc-4873-e1f0-b1e7b2794dc6"
+      },
+      "source": [
+        "print (predictions)               # \n",
+        "print (predictions[0].shape)      # 각 항목의 길이가 46인 벡터\n",
+        "print (np.sum(predictions[0]))    # 벡터의 원소 합은 1\n",
+        "print (np.argmax(predictions[0])) # 가장 확룔이 높은 클래스"
+      ],
+      "execution_count": 46,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[[2.5499949e-06 1.0498771e-05 4.8400852e-05 ... 4.4863737e-05\n",
+            "  9.0587224e-07 4.3972540e-07]\n",
+            " [3.6480897e-03 2.1713057e-01 9.6261682e-04 ... 2.0746500e-04\n",
+            "  6.6254041e-05 2.1127209e-05]\n",
+            " [3.0375342e-03 6.9701010e-01 9.0369899e-03 ... 9.6729980e-04\n",
+            "  2.2199731e-03 8.4198068e-04]\n",
+            " ...\n",
+            " [5.0532792e-05 4.5571098e-05 6.2553518e-05 ... 5.2780084e-05\n",
+            "  3.5636056e-06 1.8712850e-05]\n",
+            " [1.0984907e-03 1.6972709e-02 1.4073986e-03 ... 7.1402948e-04\n",
+            "  2.2308019e-04 2.2225011e-04]\n",
+            " [5.0566049e-04 4.8348969e-01 2.6190002e-02 ... 3.7717648e-04\n",
+            "  1.2265323e-03 4.1489018e-04]]\n",
+            "(46,)\n",
+            "1.0000001\n",
+            "3\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "eiSu3SVzj1wC",
+        "colab_type": "text"
+      },
+      "source": [
+        "### 3.5.6 레이블과 손실을 다루는 다른 방법\n",
+        "* 레이블을 인코딩하는 다른 방법으 정수 텐서로 변환하는 것이다."
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "laEjqYLFj12H",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "GfFSKtyCj18i",
+        "colab_type": "text"
+      },
+      "source": [
+        "### 3.5.7 충분히 큰 중간층을 두어야 하는 이유\n",
+        "#### 3-23 정보 병목이 있는 모델\n",
+        "* 중간층을 46층 보다 적은 4로 수행을 한다면? 정보 손실이 일어난다.\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "6ZAZTishj2Cf",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 392
+        },
+        "outputId": "17af24ce-b38c-4450-89ab-0061910a40e5"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(64, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(4, activation='relu'))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "results = model.evaluate(x_test, one_hot_test_labels)"
+      ],
+      "execution_count": 48,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 73us/step - loss: 3.2334 - accuracy: 0.1629 - val_loss: 2.7600 - val_accuracy: 0.5350\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 2.4841 - accuracy: 0.5869 - val_loss: 2.2509 - val_accuracy: 0.5910\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 2.0339 - accuracy: 0.6109 - val_loss: 1.9508 - val_accuracy: 0.5960\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 1.7569 - accuracy: 0.6200 - val_loss: 1.7700 - val_accuracy: 0.6000\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 1.5772 - accuracy: 0.6294 - val_loss: 1.6589 - val_accuracy: 0.5980\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 1.4474 - accuracy: 0.6348 - val_loss: 1.5818 - val_accuracy: 0.6130\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 1.3421 - accuracy: 0.6723 - val_loss: 1.5217 - val_accuracy: 0.6520\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.2525 - accuracy: 0.6937 - val_loss: 1.4787 - val_accuracy: 0.6550\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 1.1776 - accuracy: 0.7060 - val_loss: 1.4578 - val_accuracy: 0.6590\n",
+            "2246/2246 [==============================] - 0s 105us/step\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "aPuFXVRPnGZZ",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 35
+        },
+        "outputId": "63376080-22f1-430e-d480-81b19759da8c"
+      },
+      "source": [
+        "print (results)"
+      ],
+      "execution_count": 49,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "[1.5287529207825767, 0.642920732498169]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "h31mVAP4m9vX",
+        "colab_type": "text"
+      },
+      "source": [
+        "### 3.5.8 추가 실험\n",
+        "* 더 크거나 작은 층을 사용하기 = 32개의 유닛, 128개의 유닛\n",
+        "* 여기에서 2개의 은닉 층을 사용했다. 1개나 3개의 은닉층을 사용해보기\n",
+        "* batch_size 도 바꿔보기"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "wSNx-YENnvh6",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 32개의 유닛 사용!"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "YFVoMrX3m90r",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "9ce83076-5da9-45ad-fa51-ab1912fa70d4"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(32, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(32, activation='relu'))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "results_32_units = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(results_32_units)"
+      ],
+      "execution_count": 54,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 72us/step - loss: 3.1885 - accuracy: 0.4644 - val_loss: 2.4417 - val_accuracy: 0.5900\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 1.9973 - accuracy: 0.6483 - val_loss: 1.7427 - val_accuracy: 0.6350\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 0s 63us/step - loss: 1.4743 - accuracy: 0.7023 - val_loss: 1.4415 - val_accuracy: 0.6930\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.1946 - accuracy: 0.7408 - val_loss: 1.2765 - val_accuracy: 0.7150\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 1.0087 - accuracy: 0.7811 - val_loss: 1.1858 - val_accuracy: 0.7460\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.8679 - accuracy: 0.8121 - val_loss: 1.1142 - val_accuracy: 0.7670\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 0s 62us/step - loss: 0.7509 - accuracy: 0.8405 - val_loss: 1.0606 - val_accuracy: 0.7810\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.6499 - accuracy: 0.8574 - val_loss: 1.0333 - val_accuracy: 0.7880\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.5618 - accuracy: 0.8766 - val_loss: 1.0015 - val_accuracy: 0.7880\n",
+            "2246/2246 [==============================] - 0s 115us/step\n",
+            "[1.0621824279387722, 0.7680320739746094]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "hu3rG-yToLrN",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 64 개의 유닛 사용!!\n"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "jA5Fsm2KoLCC",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "153eed34-390d-4fee-e63b-844c2140e3c6"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(64, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(64, activation='relu'))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_64_units = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_64_units)"
+      ],
+      "execution_count": 57,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 73us/step - loss: 2.7924 - accuracy: 0.5132 - val_loss: 1.8502 - val_accuracy: 0.6310\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 1.4716 - accuracy: 0.7043 - val_loss: 1.3249 - val_accuracy: 0.7140\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.0573 - accuracy: 0.7744 - val_loss: 1.1535 - val_accuracy: 0.7420\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 0.8201 - accuracy: 0.8270 - val_loss: 1.0418 - val_accuracy: 0.7730\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.6503 - accuracy: 0.8624 - val_loss: 0.9643 - val_accuracy: 0.7910\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 0.5182 - accuracy: 0.8909 - val_loss: 0.9154 - val_accuracy: 0.8000\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.4183 - accuracy: 0.9128 - val_loss: 0.9147 - val_accuracy: 0.7970\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 0s 62us/step - loss: 0.3421 - accuracy: 0.9268 - val_loss: 0.8875 - val_accuracy: 0.8140\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.2829 - accuracy: 0.9361 - val_loss: 0.8905 - val_accuracy: 0.8100\n",
+            "2246/2246 [==============================] - 0s 106us/step\n",
+            "[0.9746373907753324, 0.7871772050857544]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "f9sXQCSLm95z",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 128 개의 유닛 사용!!m"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "OnMLtAC4m9_E",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "d9e60fac-ee13-4f7c-d1ba-5f8eab192929"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(128, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(128, activation='relu'))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_128_units = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_128_units)"
+      ],
+      "execution_count": 55,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 75us/step - loss: 2.2787 - accuracy: 0.5668 - val_loss: 1.4247 - val_accuracy: 0.6720\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.1515 - accuracy: 0.7513 - val_loss: 1.1442 - val_accuracy: 0.7500\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.8103 - accuracy: 0.8302 - val_loss: 0.9689 - val_accuracy: 0.8000\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.5821 - accuracy: 0.8806 - val_loss: 0.9061 - val_accuracy: 0.8030\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.4275 - accuracy: 0.9124 - val_loss: 0.8903 - val_accuracy: 0.8120\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.3249 - accuracy: 0.9313 - val_loss: 0.8852 - val_accuracy: 0.8110\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.2478 - accuracy: 0.9454 - val_loss: 1.0217 - val_accuracy: 0.7850\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.2131 - accuracy: 0.9481 - val_loss: 0.9256 - val_accuracy: 0.8090\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.1810 - accuracy: 0.9505 - val_loss: 0.9474 - val_accuracy: 0.8180\n",
+            "2246/2246 [==============================] - 0s 107us/step\n",
+            "[1.0498015141763117, 0.7902938723564148]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "nt7SdlFcm-E0",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### Hidden variables 1개 또는 3개 사용\n"
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "IruiRmXVpvsu",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 은닉 계층이 하나, 64"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "7zumznLtpxRN",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "1a962974-bc26-442e-c187-d9aec2ec7219"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(64, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv1_64_units = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv1_64_units)"
+      ],
+      "execution_count": 61,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 73us/step - loss: 2.5614 - accuracy: 0.5639 - val_loss: 1.8104 - val_accuracy: 0.6580\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.4734 - accuracy: 0.7176 - val_loss: 1.3520 - val_accuracy: 0.7200\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.0745 - accuracy: 0.7818 - val_loss: 1.1376 - val_accuracy: 0.7630\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.8372 - accuracy: 0.8326 - val_loss: 1.0166 - val_accuracy: 0.7930\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.6734 - accuracy: 0.8677 - val_loss: 0.9499 - val_accuracy: 0.7940\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.5491 - accuracy: 0.8900 - val_loss: 0.8854 - val_accuracy: 0.8170\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.4513 - accuracy: 0.9094 - val_loss: 0.8657 - val_accuracy: 0.8220\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.3754 - accuracy: 0.9221 - val_loss: 0.8412 - val_accuracy: 0.8240\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.3158 - accuracy: 0.9340 - val_loss: 0.8336 - val_accuracy: 0.8260\n",
+            "2246/2246 [==============================] - 0s 113us/step\n",
+            "[0.8987422755862174, 0.7947462201118469]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "_bZP1AJtpxYZ",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 은닉 변수 1, 32 유닛"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "O0Bj3gtvm-J9",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "a268ee19-d7a2-40b8-e85f-18e297324bbe"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(32, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv1_32_units = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv1_32_units)"
+      ],
+      "execution_count": 62,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 69us/step - loss: 2.9204 - accuracy: 0.4999 - val_loss: 2.2487 - val_accuracy: 0.6150\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 1.9114 - accuracy: 0.6574 - val_loss: 1.7139 - val_accuracy: 0.6640\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 1.4596 - accuracy: 0.7160 - val_loss: 1.4224 - val_accuracy: 0.6960\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.1805 - accuracy: 0.7601 - val_loss: 1.2441 - val_accuracy: 0.7340\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 0.9912 - accuracy: 0.7995 - val_loss: 1.1280 - val_accuracy: 0.7630\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.8508 - accuracy: 0.8299 - val_loss: 1.0539 - val_accuracy: 0.7870\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 0.7400 - accuracy: 0.8562 - val_loss: 0.9943 - val_accuracy: 0.7950\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.6477 - accuracy: 0.8752 - val_loss: 0.9453 - val_accuracy: 0.8060\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.5677 - accuracy: 0.8866 - val_loss: 0.9140 - val_accuracy: 0.8120\n",
+            "2246/2246 [==============================] - 0s 108us/step\n",
+            "[0.9947529459042095, 0.7804986834526062]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "SjTXQJo_pwZ6",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 은닉 1, 128 유닛 => 현재 가장 높음"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "uzRR8l07pwfC",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "36b02b7a-8609-4f83-bffe-a3f21a2009cc"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(128, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv1_128_units = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv1_128_units)"
+      ],
+      "execution_count": 64,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 75us/step - loss: 2.3152 - accuracy: 0.5947 - val_loss: 1.5035 - val_accuracy: 0.7100\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 1.1534 - accuracy: 0.7742 - val_loss: 1.1120 - val_accuracy: 0.7880\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 68us/step - loss: 0.7885 - accuracy: 0.8454 - val_loss: 0.9607 - val_accuracy: 0.8100\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.5764 - accuracy: 0.8895 - val_loss: 0.8989 - val_accuracy: 0.8090\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.4399 - accuracy: 0.9108 - val_loss: 0.8329 - val_accuracy: 0.8230\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.3421 - accuracy: 0.9297 - val_loss: 0.8445 - val_accuracy: 0.8200\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 67us/step - loss: 0.2768 - accuracy: 0.9410 - val_loss: 0.8110 - val_accuracy: 0.8350\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.2269 - accuracy: 0.9461 - val_loss: 0.8144 - val_accuracy: 0.8280\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 67us/step - loss: 0.1932 - accuracy: 0.9513 - val_loss: 0.8264 - val_accuracy: 0.8330\n",
+            "2246/2246 [==============================] - 0s 108us/step\n",
+            "[0.9235913999783387, 0.8014247417449951]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "jk4XfCnmqXJJ",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 은닉 3, 유닛 32"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "HDdKAypMqXAk",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "2f4005c6-17c8-4ef4-cdb4-58cc18233d40"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(32, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(32, activation='relu'))\n",
+        "model.add(layers.Dense(32, activation='relu'))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv3_32_units = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv3_32_units)"
+      ],
+      "execution_count": 65,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 80us/step - loss: 3.0770 - accuracy: 0.3438 - val_loss: 2.3225 - val_accuracy: 0.4170\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 1.9362 - accuracy: 0.5872 - val_loss: 1.7087 - val_accuracy: 0.6190\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 1.4907 - accuracy: 0.6854 - val_loss: 1.4545 - val_accuracy: 0.6850\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.2491 - accuracy: 0.7249 - val_loss: 1.3072 - val_accuracy: 0.7010\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 1.0732 - accuracy: 0.7591 - val_loss: 1.2107 - val_accuracy: 0.7330\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.9196 - accuracy: 0.7950 - val_loss: 1.1357 - val_accuracy: 0.7530\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.7912 - accuracy: 0.8203 - val_loss: 1.0893 - val_accuracy: 0.7620\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.6809 - accuracy: 0.8449 - val_loss: 1.0587 - val_accuracy: 0.7760\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 0.5917 - accuracy: 0.8651 - val_loss: 1.0358 - val_accuracy: 0.7900\n",
+            "2246/2246 [==============================] - 0s 113us/step\n",
+            "[1.1092696750365723, 0.7551202178001404]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "EsZlkB01qWrf",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 은닉 3, 유닛 64"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "CSxOsafVqWN6",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "be95c717-af08-465a-b487-aa51df2f2847"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(64, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(64, activation='relu'))\n",
+        "model.add(layers.Dense(64, activation='relu'))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv3_64_units = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv3_64_units)"
+      ],
+      "execution_count": 66,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 75us/step - loss: 2.6102 - accuracy: 0.4702 - val_loss: 1.7083 - val_accuracy: 0.6450\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.4522 - accuracy: 0.6983 - val_loss: 1.3388 - val_accuracy: 0.7110\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 1.1009 - accuracy: 0.7577 - val_loss: 1.1744 - val_accuracy: 0.7410\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 0s 62us/step - loss: 0.8758 - accuracy: 0.8072 - val_loss: 1.0763 - val_accuracy: 0.7700\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.6840 - accuracy: 0.8482 - val_loss: 1.0342 - val_accuracy: 0.7690\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 0s 62us/step - loss: 0.5504 - accuracy: 0.8767 - val_loss: 0.9810 - val_accuracy: 0.7860\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.4248 - accuracy: 0.9080 - val_loss: 0.9661 - val_accuracy: 0.7970\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 0.3480 - accuracy: 0.9251 - val_loss: 0.9491 - val_accuracy: 0.8010\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.2825 - accuracy: 0.9369 - val_loss: 0.9803 - val_accuracy: 0.8040\n",
+            "2246/2246 [==============================] - 0s 116us/step\n",
+            "[1.117533819652092, 0.7720391750335693]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "0auhyIGtqWCH",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### 은닉 3, 유닛 128"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "W6YLUF_5qV27",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "28e9bd3c-3f8f-49f7-8fa2-f86b71824407"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(128, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(128, activation='relu'))\n",
+        "model.add(layers.Dense(128, activation='relu'))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv3_128_units = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv3_128_units)"
+      ],
+      "execution_count": 67,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 77us/step - loss: 2.2742 - accuracy: 0.4975 - val_loss: 1.4225 - val_accuracy: 0.6700\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 1.1581 - accuracy: 0.7439 - val_loss: 1.1327 - val_accuracy: 0.7380\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.8229 - accuracy: 0.8185 - val_loss: 1.0423 - val_accuracy: 0.7680\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.6029 - accuracy: 0.8647 - val_loss: 0.9441 - val_accuracy: 0.8180\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.4107 - accuracy: 0.9132 - val_loss: 0.9879 - val_accuracy: 0.7950\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.3594 - accuracy: 0.9194 - val_loss: 0.9443 - val_accuracy: 0.8150\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 67us/step - loss: 0.2487 - accuracy: 0.9422 - val_loss: 1.0091 - val_accuracy: 0.8070\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.2209 - accuracy: 0.9458 - val_loss: 0.9732 - val_accuracy: 0.8240\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.1784 - accuracy: 0.9519 - val_loss: 1.1246 - val_accuracy: 0.7850\n",
+            "2246/2246 [==============================] - 0s 130us/step\n",
+            "[1.2711272084702367, 0.7662510871887207]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "fu055LUnm-N_",
+        "colab_type": "text"
+      },
+      "source": [
+        "#### batch_size = 512"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "1yTvFp1co_kU",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "ae6591e2-f890-4ef5-fdd1-e4a18e378acb"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(128, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=512,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv1_128_units_b512 = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv1_128_units_b512)"
+      ],
+      "execution_count": 75,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 72us/step - loss: 2.2073 - accuracy: 0.5918 - val_loss: 1.4428 - val_accuracy: 0.6970\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 1.1137 - accuracy: 0.7762 - val_loss: 1.1076 - val_accuracy: 0.7690\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.7712 - accuracy: 0.8472 - val_loss: 0.9596 - val_accuracy: 0.8050\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.5677 - accuracy: 0.8915 - val_loss: 0.8840 - val_accuracy: 0.8110\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 0s 63us/step - loss: 0.4337 - accuracy: 0.9129 - val_loss: 0.8444 - val_accuracy: 0.8270\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.3383 - accuracy: 0.9313 - val_loss: 0.8221 - val_accuracy: 0.8240\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.2733 - accuracy: 0.9410 - val_loss: 0.8145 - val_accuracy: 0.8250\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.2253 - accuracy: 0.9474 - val_loss: 0.8401 - val_accuracy: 0.8210\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.1937 - accuracy: 0.9499 - val_loss: 0.8273 - val_accuracy: 0.8250\n",
+            "2246/2246 [==============================] - 0s 107us/step\n",
+            "[0.9260880779392042, 0.7987533211708069]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "amo4lV7Wo_rd",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "_olvNTVYo_yO",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "dab9a6e2-13fd-47b1-8fe1-18d3b6348674"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(128, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=256,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv1_128_units_b256 = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv1_128_units_b256)"
+      ],
+      "execution_count": 76,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 74us/step - loss: 1.8571 - accuracy: 0.6367 - val_loss: 1.2091 - val_accuracy: 0.7600\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 65us/step - loss: 0.9003 - accuracy: 0.8177 - val_loss: 0.9620 - val_accuracy: 0.8030\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.5918 - accuracy: 0.8810 - val_loss: 0.8644 - val_accuracy: 0.8180\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.4143 - accuracy: 0.9137 - val_loss: 0.8277 - val_accuracy: 0.8230\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.3042 - accuracy: 0.9344 - val_loss: 0.8020 - val_accuracy: 0.8300\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 66us/step - loss: 0.2365 - accuracy: 0.9440 - val_loss: 0.8244 - val_accuracy: 0.8250\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.1951 - accuracy: 0.9478 - val_loss: 0.8267 - val_accuracy: 0.8260\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 64us/step - loss: 0.1699 - accuracy: 0.9509 - val_loss: 0.8688 - val_accuracy: 0.8290\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 63us/step - loss: 0.1523 - accuracy: 0.9544 - val_loss: 0.8759 - val_accuracy: 0.8210\n",
+            "2246/2246 [==============================] - 0s 107us/step\n",
+            "[1.0089555429966452, 0.8000890612602234]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "x2bvZJoro_3_",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "VrwWoLOvo_9k",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "58208d31-36d7-4929-bc17-638a45dc7b49"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(128, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=128,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv1_128_units_b128 = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv1_128_units_b128)"
+      ],
+      "execution_count": 77,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 80us/step - loss: 1.5915 - accuracy: 0.6837 - val_loss: 1.0569 - val_accuracy: 0.7680\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 73us/step - loss: 0.7500 - accuracy: 0.8434 - val_loss: 0.8583 - val_accuracy: 0.8170\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 74us/step - loss: 0.4677 - accuracy: 0.9022 - val_loss: 0.8027 - val_accuracy: 0.8330\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 73us/step - loss: 0.3163 - accuracy: 0.9320 - val_loss: 0.8086 - val_accuracy: 0.8250\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 74us/step - loss: 0.2411 - accuracy: 0.9429 - val_loss: 0.8375 - val_accuracy: 0.8260\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 73us/step - loss: 0.1991 - accuracy: 0.9464 - val_loss: 0.8786 - val_accuracy: 0.8150\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 74us/step - loss: 0.1726 - accuracy: 0.9526 - val_loss: 0.8835 - val_accuracy: 0.8240\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 73us/step - loss: 0.1525 - accuracy: 0.9544 - val_loss: 0.9612 - val_accuracy: 0.8110\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 74us/step - loss: 0.1431 - accuracy: 0.9553 - val_loss: 0.9707 - val_accuracy: 0.8120\n",
+            "2246/2246 [==============================] - 0s 105us/step\n",
+            "[1.1556517744531403, 0.7894033789634705]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "lcIT5ch9uR7W",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        "m"
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "vgYN44f0uSH1",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 410
+        },
+        "outputId": "fcfba721-7851-46ad-d236-f808ec7aa604"
+      },
+      "source": [
+        "from keras import models\n",
+        "from keras import layers\n",
+        "\n",
+        "model = models.Sequential()\n",
+        "model.add(layers.Dense(128, activation='relu', input_shape=(10000, )))\n",
+        "model.add(layers.Dense(46, activation='softmax'))\n",
+        "\n",
+        "model.compile(optimizer=\"rmsprop\",\n",
+        "              loss=\"categorical_crossentropy\",\n",
+        "              metrics=['accuracy'])\n",
+        "\n",
+        "model.fit(\n",
+        "    partial_x_train,\n",
+        "    partial_y_train,\n",
+        "    epochs=9,\n",
+        "    batch_size=128,\n",
+        "    validation_data=(x_val, y_val)\n",
+        ")\n",
+        "\n",
+        "result_hv1_128_units_b128 = model.evaluate(x_test, one_hot_test_labels)\n",
+        "print(result_hv1_128_units_b128)"
+      ],
+      "execution_count": 79,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Train on 7982 samples, validate on 1000 samples\n",
+            "Epoch 1/9\n",
+            "7982/7982 [==============================] - 1s 85us/step - loss: 1.6646 - accuracy: 0.6800 - val_loss: 1.0872 - val_accuracy: 0.7760\n",
+            "Epoch 2/9\n",
+            "7982/7982 [==============================] - 1s 76us/step - loss: 0.7614 - accuracy: 0.8395 - val_loss: 0.8806 - val_accuracy: 0.8220\n",
+            "Epoch 3/9\n",
+            "7982/7982 [==============================] - 1s 72us/step - loss: 0.4683 - accuracy: 0.9015 - val_loss: 0.8080 - val_accuracy: 0.8310\n",
+            "Epoch 4/9\n",
+            "7982/7982 [==============================] - 1s 73us/step - loss: 0.3209 - accuracy: 0.9318 - val_loss: 0.8042 - val_accuracy: 0.8290\n",
+            "Epoch 5/9\n",
+            "7982/7982 [==============================] - 1s 72us/step - loss: 0.2402 - accuracy: 0.9432 - val_loss: 0.8487 - val_accuracy: 0.8260\n",
+            "Epoch 6/9\n",
+            "7982/7982 [==============================] - 1s 72us/step - loss: 0.1960 - accuracy: 0.9484 - val_loss: 0.8810 - val_accuracy: 0.8250\n",
+            "Epoch 7/9\n",
+            "7982/7982 [==============================] - 1s 74us/step - loss: 0.1735 - accuracy: 0.9544 - val_loss: 0.9049 - val_accuracy: 0.8170\n",
+            "Epoch 8/9\n",
+            "7982/7982 [==============================] - 1s 72us/step - loss: 0.1524 - accuracy: 0.9536 - val_loss: 0.9604 - val_accuracy: 0.8100\n",
+            "Epoch 9/9\n",
+            "7982/7982 [==============================] - 1s 74us/step - loss: 0.1425 - accuracy: 0.9564 - val_loss: 0.9395 - val_accuracy: 0.8200\n",
+            "2246/2246 [==============================] - 0s 104us/step\n",
+            "[1.1038505515135089, 0.7965271472930908]\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "qztCn503uSNj",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "6JmmeFVjuSTz",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "e-F1wyHTuSY1",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "b047wpnjuSe2",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "7At0lpOZuSj0",
+        "colab_type": "code",
+        "colab": {}
+      },
+      "source": [
+        ""
+      ],
+      "execution_count": 0,
+      "outputs": []
+    }
+  ]
+}
